@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>تشخیص Mini App</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+body{margin:0;background:#07111f;color:#f4f7fb;font-family:Tahoma,Arial,sans-serif;padding:18px}
+main{max-width:700px;margin:auto}
+h1{font-size:22px}
+.card{background:#122036;border:1px solid #29415f;border-radius:16px;padding:14px;margin:10px 0}
+.ok{color:#55d6a2}.bad{color:#ff7f8b}.wait{color:#ffd166}
+pre{white-space:pre-wrap;word-break:break-word;background:#07111f;padding:10px;border-radius:10px;font-size:12px}
+button{width:100%;padding:13px;margin-top:10px;border:0;border-radius:12px;background:#65a9ff;color:#06101e;font-weight:bold;font-size:15px}
+</style>
+</head>
+<body>
+<main>
+<h1>🔎 تست Mini App</h1>
+<div class="card"><b>Telegram</b><div id="telegram" class="wait">در حال بررسی...</div></div>
+<div class="card"><b>Worker /health</b><div id="health" class="wait">در حال بررسی...</div><pre id="healthDetail"></pre></div>
+<div class="card"><b>Worker /tasks</b><div id="tasks" class="wait">در حال بررسی...</div><pre id="tasksDetail"></pre></div>
+<div class="card"><b>نتیجه نهایی</b><div id="result" class="wait">در حال بررسی...</div></div>
+<button onclick="runTests()">🔄 اجرای دوباره تست</button>
+</main>
+<script>
+const API='https://mytelegrambot-api.a-behrouzvaziri70.workers.dev';
+const tg=window.Telegram?.WebApp;
+
+function set(id,text,cls){
+  const e=document.getElementById(id);
+  e.textContent=text;
+  e.className=cls||'';
+}
+function detail(id,text){document.getElementById(id).textContent=text||''}
+
+async function runTests(){
+  set('telegram','در حال بررسی...','wait');
+  set('health','در حال بررسی...','wait');
+  set('tasks','در حال بررسی...','wait');
+  set('result','در حال بررسی...','wait');
+  detail('healthDetail','');
+  detail('tasksDetail','');
+
+  if(!tg){
+    set('telegram','❌ Telegram WebApp API پیدا نشد','bad');
+    set('result','❌ این صفحه داخل Telegram WebView اجرا نشده است.','bad');
+    return;
+  }
+
+  try{tg.ready();tg.expand();}catch(e){}
+
+  const init=tg.initData||'';
+  if(init){
+    set('telegram','✅ initData دریافت شد','ok');
+  }else{
+    set('telegram','❌ initData خالی است','bad');
+  }
+
+  // Test public health: no auth, no custom headers.
+  try{
+    const r=await fetch(API+'/health',{method:'GET'});
+    const text=await r.text();
+    detail('healthDetail','HTTP '+r.status+'\n'+text);
+    if(r.ok){
+      set('health','✅ ارتباط با Worker برقرار است','ok');
+    }else{
+      set('health','❌ Worker پاسخ خطا داد','bad');
+      set('result','❌ مشکل در پاسخ Worker /health است.','bad');
+      return;
+    }
+  }catch(e){
+    detail('healthDetail',
+      'name: '+(e?.name||'')+'\nmessage: '+(e?.message||String(e))+
+      '\nuserAgent: '+navigator.userAgent);
+    set('health','❌ fetch به Worker شکست خورد','bad');
+    set('result','❌ Mini App حتی به /health دسترسی ندارد.','bad');
+    return;
+  }
+
+  // Test protected tasks using query auth, no custom header.
+  if(!init){
+    detail('tasksDetail','initData موجود نیست؛ تست /tasks انجام نشد.');
+    set('tasks','⚠️ قابل تست نیست چون initData خالی است','bad');
+    set('result','❌ مشکل اصلی: Telegram initData ارسال نمی‌کند.','bad');
+    return;
+  }
+
+  try{
+    const url=API+'/tasks?tgWebAppData='+encodeURIComponent(init);
+    const r=await fetch(url,{method:'GET'});
+    const text=await r.text();
+    detail('tasksDetail','HTTP '+r.status+'\n'+text);
+    if(r.ok){
+      set('tasks','✅ /tasks با موفقیت پاسخ داد','ok');
+      set('result','🎉 هر سه تست موفق هستند.','ok');
+    }else{
+      set('tasks','❌ /tasks خطا داد','bad');
+      set('result','⚠️ Worker در دسترس است ولی احراز هویت /tasks مشکل دارد.','bad');
+    }
+  }catch(e){
+    detail('tasksDetail',
+      'name: '+(e?.name||'')+'\nmessage: '+(e?.message||String(e))+
+      '\nuserAgent: '+navigator.userAgent);
+    set('tasks','❌ fetch به /tasks شکست خورد','bad');
+    set('result','⚠️ /health کار می‌کند ولی /tasks از داخل Mini App قابل دسترسی نیست.','bad');
+  }
+}
+
+runTests();
+</script>
+</body>
+</html>
