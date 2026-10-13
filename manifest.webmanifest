@@ -1,0 +1,17 @@
+{
+  "id": "./",
+  "name": "دستیار شخصی",
+  "short_name": "دستیار من",
+  "description": "مدیریت کارها، یادآورها، یادداشت‌ها، آرشیو و پیگیری‌ها",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5faf8",
+  "theme_color": "#f5faf8",
+  "icons": [
+    {"src":"./icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"./icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
+}
